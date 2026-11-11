@@ -1,0 +1,52 @@
+
+name: Build WebDriverAgent IPA
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/build-wda.yml'
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout my repository
+        uses: actions/checkout@v4
+
+      - name: Download WebDriverAgent source
+        run: |
+          git clone --depth 1 https://github.com/appium/WebDriverAgent.git
+
+      - name: Install dependencies
+        working-directory: WebDriverAgent
+        run: |
+          ./Scripts/bootstrap.sh -d
+
+      - name: Build WebDriverAgent
+        working-directory: WebDriverAgent
+        run: |
+          xcodebuild clean build-for-testing \
+            -project WebDriverAgent.xcodeproj \
+            -scheme WebDriverAgentRunner \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/wda-build" \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Package IPA
+        run: |
+          APP_PATH="$RUNNER_TEMP/wda-build/Build/Products/Debug-iphoneos/WebDriverAgentRunner-Runner.app"
+          test -d "$APP_PATH"
+          mkdir -p "$RUNNER_TEMP/package/Payload"
+          cp -R "$APP_PATH" "$RUNNER_TEMP/package/Payload/"
+          cd "$RUNNER_TEMP/package"
+          /usr/bin/zip -r "$GITHUB_WORKSPACE/WebDriverAgentRunner-unsigned.ipa" Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: WebDriverAgent-IPA
+          path: WebDriverAgentRunner-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 7
