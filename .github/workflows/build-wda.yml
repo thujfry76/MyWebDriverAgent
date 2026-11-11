@@ -18,12 +18,7 @@ jobs:
       - name: Download WebDriverAgent source
         run: |
           git clone --depth 1 https://github.com/appium/WebDriverAgent.git
-
-      - name: Install dependencies
-        working-directory: WebDriverAgent
-        run: |
-          ./Scripts/bootstrap.sh -d
-
+          
       - name: Build WebDriverAgent
         working-directory: WebDriverAgent
         run: |
